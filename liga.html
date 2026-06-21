@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liga H2H — Estadísticas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0f1c;
+    --bg-2:#0d1626;
+    --surface:#101d33;
+    --surface-2:#142a4a;
+    --card:#13213a;
+    --card-hover:#17274a;
+    --border:#22324e;
+    --border-soft:#1a2740;
+    --blue:#3b6bff;
+    --blue-soft:rgba(59,107,255,.14);
+    --chartreuse:#d4ff5f;
+    --win:#36d486;
+    --win-soft:rgba(54,212,134,.15);
+    --loss:#ff5d6c;
+    --loss-soft:rgba(255,93,108,.15);
+    --gold:#e8b94e;
+    --gold-soft:rgba(232,185,78,.14);
+    --text:#f3f6fc;
+    --text-dim:#93a4c3;
+    --text-mute:#5b6c8c;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --font-display:'Barlow Condensed',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(59,107,255,.18), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(212,255,95,.07), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--blue);color:#fff;}
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;
+    padding:16px clamp(16px,4vw,40px);
+    background:rgba(10,15,28,.82);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-dot{
+    width:13px;height:13px;border-radius:50%;
+    background:var(--chartreuse);
+    box-shadow:0 0 14px rgba(212,255,95,.65);
+  }
+  .brand-name{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+  .brand-name span{color:var(--blue);}
+  .brand-sub{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--text-mute);
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-left:2px;
+  }
+  .tabs{
+    display:flex;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:4px;
+    gap:4px;
+  }
+  .tab{
+    appearance:none;border:none;cursor:pointer;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    padding:8px 20px;
+    border-radius:999px;
+    color:var(--text-dim);
+    background:transparent;
+    transition:all .2s ease;
+  }
+  .tab:hover{color:var(--text);}
+  .tab.active{
+    background:var(--blue);
+    color:#fff;
+    box-shadow:0 4px 16px rgba(59,107,255,.4);
+  }
+
+  /* ---------- Ticker ---------- */
+  .ticker{
+    display:flex;flex-wrap:wrap;gap:0;
+    border-bottom:1px solid var(--border-soft);
+    background:var(--bg-2);
+  }
+  .ticker-item{
+    flex:1 1 140px;
+    padding:14px clamp(14px,3vw,28px);
+    border-right:1px solid var(--border-soft);
+  }
+  .ticker-item:last-child{border-right:none;}
+  .ticker-num{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:26px;
+    color:var(--chartreuse);
+    line-height:1;
+  }
+  .ticker-label{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    color:var(--text-mute);
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    margin-top:4px;
+  }
+
+  main{
+    max-width:980px;
+    margin:0 auto;
+    padding:clamp(20px,4vw,40px) clamp(16px,4vw,40px) 80px;
+  }
+  .view{display:none;}
+  .view.active{display:block;animation:fadein .35s ease;}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* ---------- Search ---------- */
+  .search-block{position:relative;flex:1;min-width:0;}
+  .search-block label{
+    display:block;
+    font-family:var(--font-mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--text-mute);
+    margin-bottom:8px;
+  }
+  .search-input{
+    width:100%;
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:17px;
+    font-weight:500;
+    padding:14px 16px;
+    border-radius:var(--radius-md);
+    outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .search-input::placeholder{color:var(--text-mute);}
+  .search-input:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--blue-soft);}
+  .suggestions{
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;right:0;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    overflow:hidden;
+    z-index:30;
+    box-shadow:0 18px 40px rgba(0,0,0,.45);
+    display:none;
+  }
+  .suggestions.show{display:block;}
+  .sugg-item{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 16px;
+    cursor:pointer;
+    font-size:15px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .sugg-item:last-child{border-bottom:none;}
+  .sugg-item:hover, .sugg-item.hi{background:var(--card-hover);}
+  .flag-img{display:inline-block;object-fit:cover;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.5);vertical-align:middle;background:var(--surface-2);}
+  .flag-sm{width:22px;height:16px;border-radius:3px;}
+  .flag-md{width:38px;height:28px;border-radius:5px;}
+  .flag-lg{width:60px;height:44px;border-radius:8px;}
+  .sugg-flag{display:inline-flex;}
+  .sugg-country{color:var(--text-mute);font-size:12.5px;margin-left:auto;font-family:var(--font-mono);}
+
+  .empty-state{
+    margin-top:60px;
+    text-align:center;
+    color:var(--text-mute);
+    font-family:var(--font-mono);
+    font-size:13px;
+    letter-spacing:.04em;
+  }
+  .empty-state .big{
+    font-family:var(--font-display);
+    font-size:20px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:6px;
+    display:block;
+  }
+
+  /* ---------- Player Profile ---------- */
+  .profile{margin-top:36px;}
+  .p-header{
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    padding-bottom:22px;
+    border-bottom:1px solid var(--border-soft);
+    margin-bottom:26px;
+  }
+  .p-flag{line-height:1;}
+  .p-name{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:clamp(28px,5vw,40px);
+    text-transform:uppercase;
+    letter-spacing:.01em;
+    line-height:1;
+  }
+  .p-meta{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;}
+  .pill{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    padding:5px 11px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+  }
+  .pill.country{color:var(--text-dim);}
+  .pill.hand{color:var(--blue);border-color:rgba(59,107,255,.4);background:var(--blue-soft);}
+  .pill.rank{color:var(--gold);border-color:rgba(232,185,78,.4);background:var(--gold-soft);}
+
+  .section-title{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    color:var(--text-mute);
+    margin:36px 0 14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .section-title::after{
+    content:'';flex:1;height:1px;background:var(--border-soft);
+  }
+
+  .record-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:560px){.record-row{grid-template-columns:1fr;}}
+  .record-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:20px 22px;
+  }
+  .record-card .rc-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
+  .rc-title{
+    font-family:var(--font-display);font-weight:700;font-size:15px;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--text);
+  }
+  .rc-pct{font-family:var(--font-mono);font-weight:700;font-size:19px;color:var(--chartreuse);}
+  .rc-nums{display:flex;gap:22px;margin-bottom:14px;}
+  .rc-num-block .n{font-family:var(--font-mono);font-weight:700;font-size:24px;line-height:1;}
+  .rc-num-block .l{font-size:10.5px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;font-family:var(--font-mono);}
+  .rc-num-block.win .n{color:var(--win);}
+  .rc-num-block.loss .n{color:var(--loss);}
+  .splitbar{height:9px;border-radius:999px;overflow:hidden;display:flex;background:var(--border-soft);}
+  .splitbar .w{background:var(--win);}
+  .splitbar .l{background:var(--loss);}
+
+  /* ---------- Titles ---------- */
+  .titles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+  .title-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:16px 17px;
+  }
+  .title-card .tc-name{
+    font-family:var(--font-display);font-weight:700;font-size:15.5px;
+    text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;
+  }
+  .trophy-row{display:flex;flex-wrap:wrap;gap:3px;min-height:18px;margin-bottom:10px;}
+  .trophy-row svg{width:15px;height:15px;color:var(--gold);}
+  .trophy-row .more{font-family:var(--font-mono);font-size:11px;color:var(--gold);align-self:center;margin-left:2px;}
+  .tc-stats{display:flex;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--text-dim);gap:4px 12px;}
+  .tc-stats b{color:var(--text);}
+  .tc-empty{color:var(--text-mute);font-size:12px;font-family:var(--font-mono);}
+
+  .summary-card{
+    background:linear-gradient(135deg, var(--blue-soft), transparent 70%), var(--card);
+    border:1px solid rgba(59,107,255,.35);
+    border-radius:var(--radius-lg);
+    padding:20px 22px;
+    margin-top:12px;
+  }
+  .summary-card.career{
+    background:linear-gradient(135deg, var(--gold-soft), transparent 70%), var(--card);
+    border:1px solid rgba(232,185,78,.4);
+  }
+  .summary-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+  .summary-title{font-family:var(--font-display);font-weight:800;font-size:18px;text-transform:uppercase;letter-spacing:.04em;}
+  .summary-stats{display:flex;flex-wrap:wrap;gap:26px;}
+  .summary-stats .s-block .n{font-family:var(--font-mono);font-weight:700;font-size:26px;line-height:1;}
+  .summary-stats .s-block .l{font-family:var(--font-mono);font-size:10.5px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+
+  /* ---------- H2H ---------- */
+  .h2h-search-row{display:flex;align-items:flex-end;gap:16px;}
+  .vs-badge{
+    flex:0 0 auto;
+    width:54px;height:54px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--surface);
+    border:2px solid var(--border);
+    font-family:var(--font-display);font-weight:800;font-size:15px;
+    color:var(--chartreuse);
+    margin-bottom:2px;
+    transition:transform .25s ease, border-color .25s ease;
+  }
+  .vs-badge.live{border-color:var(--chartreuse);transform:rotate(180deg) scale(1.05);}
+  .vs-badge.live span{display:inline-block;transform:rotate(180deg);}
+  @media(max-width:560px){.h2h-search-row{flex-direction:column;align-items:stretch;}.vs-badge{align-self:center;margin:4px 0;}}
+
+  .h2h-result{margin-top:40px;}
+  .h2h-vs-header{display:flex;align-items:center;justify-content:center;gap:22px;text-align:center;margin-bottom:30px;}
+  .h2h-player{flex:1;}
+  .h2h-player .flag{display:flex;justify-content:center;}
+  .h2h-player .name{font-family:var(--font-display);font-weight:800;font-size:clamp(20px,4vw,28px);text-transform:uppercase;margin-top:6px;}
+  .h2h-player .country{font-family:var(--font-mono);font-size:11.5px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;}
+  .h2h-mid{font-family:var(--font-display);font-weight:800;font-size:22px;color:var(--text-mute);}
+
+  .h2h-bar-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:20px 24px;
+    margin-bottom:14px;
+  }
+  .h2h-bar-label{
+    font-family:var(--font-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--text-mute);margin-bottom:12px;text-align:center;
+  }
+  .h2h-bar-nums{display:flex;justify-content:space-between;font-family:var(--font-mono);font-weight:700;font-size:28px;margin-bottom:10px;}
+  .h2h-bar-nums .a{color:var(--blue);}
+  .h2h-bar-nums .b{color:var(--chartreuse);}
+  .h2h-splitbar{height:12px;border-radius:999px;overflow:hidden;display:flex;background:var(--border-soft);}
+  .h2h-splitbar .a{background:var(--blue);}
+  .h2h-splitbar .b{background:var(--chartreuse);}
+  .h2h-bar-empty{text-align:center;color:var(--text-mute);font-family:var(--font-mono);font-size:13px;padding:6px 0;}
+
+  .history-toggle{
+    display:inline-flex;align-items:center;gap:8px;
+    background:none;border:1px solid var(--border);color:var(--text-dim);
+    font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;
+    padding:9px 16px;border-radius:999px;cursor:pointer;margin-top:8px;
+  }
+  .history-toggle:hover{border-color:var(--blue);color:var(--text);}
+  .history-list{margin-top:14px;display:none;flex-direction:column;gap:6px;}
+  .history-list.show{display:flex;}
+  .h-row{
+    display:flex;align-items:center;gap:10px;
+    background:var(--card);border:1px solid var(--border-soft);border-radius:var(--radius-sm);
+    padding:9px 14px;font-size:13px;
+  }
+  .h-tag{
+    font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+    padding:3px 8px;border-radius:6px;background:var(--surface-2);color:var(--text-mute);border:1px solid var(--border-soft);
+    flex:0 0 auto;
+  }
+  .h-tag.final{color:var(--gold);border-color:rgba(232,185,78,.4);background:var(--gold-soft);}
+  .h-winner{font-weight:600;color:var(--text);}
+  .h-vs{color:var(--text-mute);}
+
+  footer{
+    text-align:center;
+    padding:30px 16px 50px;
+    color:var(--text-mute);
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:.04em;
+  }
+  footer b{color:var(--text-dim);}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-dot"></span>
+    <div>
+      <div class="brand-name">LIGA<span>H2H</span></div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="jugador">Jugador</button>
+    <button class="tab" data-tab="h2h">H2H</button>
+  </nav>
+</header>
+
+<div class="ticker" id="ticker"></div>
+
+<main>
+
+  <section id="view-jugador" class="view active">
+    <div class="search-block">
+      <label>Buscar jugador</label>
+      <input id="player-search" class="search-input" type="text" placeholder="Escribe un nombre… (ej. Gabi)" autocomplete="off">
+      <div id="player-suggestions" class="suggestions"></div>
+    </div>
+    <div id="player-empty" class="empty-state">
+      <span class="big">Elige un jugador</span>
+      Busca un nombre arriba para ver su ficha completa
+    </div>
+    <div id="player-profile" class="profile" hidden></div>
+  </section>
+
+  <section id="view-h2h" class="view">
+    <div class="h2h-search-row">
+      <div class="search-block">
+        <label>Jugador A</label>
+        <input id="h2h-a-input" class="search-input" type="text" placeholder="Nombre del jugador A" autocomplete="off">
+        <div id="h2h-a-suggestions" class="suggestions"></div>
+      </div>
+      <div class="vs-badge" id="vs-badge"><span>VS</span></div>
+      <div class="search-block">
+        <label>Jugador B</label>
+        <input id="h2h-b-input" class="search-input" type="text" placeholder="Nombre del jugador B" autocomplete="off">
+        <div id="h2h-b-suggestions" class="suggestions"></div>
+      </div>
+    </div>
+    <div id="h2h-empty" class="empty-state">
+      <span class="big">Elige dos jugadores</span>
+      Busca a Jugador A y Jugador B para ver su cara a cara
+    </div>
+    <div id="h2h-result" class="h2h-result" hidden></div>
+  </section>
+
+</main>
+
+<footer>
+  Datos privados de la liga · <b>20 jugadores</b> · pídele a Claude que añada resultados o títulos nuevos para mantenerlo al día
+</footer>
+
+<script>
+const PLAYERS = [{"id": 1, "name": "A.Laso", "country": "Serbia"}, {"id": 2, "name": "A.Herraez", "country": "Suiza"}, {"id": 3, "name": "A.Caño", "country": "España"}, {"id": 4, "name": "Oscar", "country": "Republica Checa"}, {"id": 5, "name": "Iker", "country": "Rusia"}, {"id": 6, "name": "P.Benito", "country": "Peru"}, {"id": 7, "name": "L.Calvache", "country": "Ciudad del Vaticano"}, {"id": 8, "name": "J.Bestard", "country": "Canada"}, {"id": 9, "name": "Carlo", "country": "Italia"}, {"id": 10, "name": "Gabi", "country": "Usa"}, {"id": 11, "name": "Jaime", "country": "Australia"}, {"id": 12, "name": "Nico", "country": "Portugal"}, {"id": 13, "name": "Jorge", "country": "Grecia"}, {"id": 14, "name": "X.Ferrer", "country": "Argentina"}, {"id": 15, "name": "Pau", "country": "Brasil"}, {"id": 16, "name": "L.Ribas", "country": "Francia"}, {"id": 17, "name": "A.Alberti", "country": "Israel"}, {"id": 18, "name": "Lluc", "country": "Alemania"}, {"id": 19, "name": "Geray", "country": "Chile"}, {"id": 20, "name": "Pepe", "country": "Polonia"}];
+const SINGLES = [{"p1": 1, "p2": 2, "w": 1, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 1, "p2": 2, "w": 1, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 1, "p2": 2, "w": 1, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 1, "p2": 2, "w": 1, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 1, "p2": 2, "w": 1, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 1, "p2": 2, "w": 1, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 1, "p2": 2, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 2, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 2, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 2, "w": 2, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 1, "p2": 2, "w": 2, "fase": "KO", "comp": "Copa de Maestros", "ronda": "Final"}, {"p1": 1, "p2": 2, "w": 2, "fase": "KO", "comp": "Copa de Maestros", "ronda": "Final"}, {"p1": 1, "p2": 9, "w": 1, "fase": "KO", "comp": "Copa de Maestros", "ronda": "Final"}, {"p1": 1, "p2": 9, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 9, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 9, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 9, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 9, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 9, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 9, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 9, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 9, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 8, "w": 1, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 1, "p2": 8, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 18, "w": 1, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 1, "p2": 18, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 18, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 18, "w": 1, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 1, "p2": 18, "w": 18, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 18, "w": 18, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 13, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 20, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 17, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 7, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 7, "w": 1, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 1, "p2": 7, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 7, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 7, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 7, "w": 7, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 12, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 12, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 12, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 12, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 12, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 12, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 11, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 11, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 11, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 11, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 11, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 11, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 19, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 19, "w": 19, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 5, "w": 1, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 1, "p2": 5, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 5, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 5, "w": 5, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 5, "w": 5, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 5, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 5, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 3, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 3, "w": 3, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 3, "w": 3, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 1, "p2": 3, "w": 3, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 1, "p2": 3, "w": 3, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 1, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 4, "w": 1, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 1, "p2": 4, "w": 1, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 1, "p2": 4, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 4, "w": 4, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 1, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 4, "w": 4, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 11, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 11, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 11, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 11, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 11, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 11, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 11, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 4, "w": 4, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 4, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 4, "w": 2, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 2, "p2": 4, "w": 2, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 2, "p2": 4, "w": 2, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 2, "p2": 4, "w": 2, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 2, "p2": 4, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 4, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 4, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 4, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 9, "w": 9, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 9, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 9, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 9, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 9, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 5, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 5, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 5, "w": 2, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 2, "p2": 5, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 5, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 18, "w": 18, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 18, "w": 18, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 18, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 18, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 18, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 18, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 18, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 17, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 17, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 19, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 14, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 16, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 16, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 20, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 8, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 8, "w": 8, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 7, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 7, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 7, "w": 2, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 2, "p2": 13, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 13, "w": 13, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 12, "w": 12, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 12, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 2, "fase": "KO", "comp": "Copa de Maestros", "ronda": "Final"}, {"p1": 2, "p2": 3, "w": 3, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 3, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 1, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 6, "w": 2, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 3, "p2": 9, "w": 3, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 3, "p2": 9, "w": 3, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 3, "p2": 9, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 5, "w": 3, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 3, "p2": 5, "w": 3, "fase": "KO", "comp": "Copa de Maestros", "ronda": "Final"}, {"p1": 3, "p2": 5, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 5, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 12, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 3, "p2": 12, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 3, "p2": 12, "w": 3, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 3, "p2": 12, "w": 3, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 3, "p2": 12, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 12, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 18, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 18, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 8, "w": 3, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 3, "p2": 8, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 8, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 4, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 4, "w": 3, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 3, "p2": 4, "w": 3, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 3, "p2": 4, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 4, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 13, "w": 3, "fase": "KO", "comp": "Torneos Extra", "ronda": "Final"}, {"p1": 3, "p2": 7, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 7, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 7, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 19, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 10, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 10, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 10, "w": 5, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 5, "p2": 10, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 9, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 9, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 12, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 19, "w": 5, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 5, "p2": 19, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 4, "w": 4, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 5, "p2": 4, "w": 4, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 5, "p2": 4, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 4, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 7, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 7, "w": 5, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 8, "w": 8, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 18, "w": 5, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 5, "p2": 18, "w": 18, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 5, "p2": 18, "w": 18, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 5, "p2": 18, "w": 18, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 5, "p2": 11, "w": 5, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 5, "p2": 11, "w": 11, "fase": "KO", "comp": null, "ronda": null}, {"p1": 5, "p2": 11, "w": 11, "fase": "KO", "comp": null, "ronda": null}, {"p1": 12, "p2": 10, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 12, "p2": 10, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 12, "p2": 9, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 12, "p2": 9, "w": 12, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 12, "p2": 18, "w": 12, "fase": "KO", "comp": "Torneos Extra", "ronda": "Final"}, {"p1": 12, "p2": 11, "w": 12, "fase": "KO", "comp": null, "ronda": null}, {"p1": 12, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 12, "p2": 13, "w": 13, "fase": "KO", "comp": null, "ronda": null}, {"p1": 11, "p2": 9, "w": 11, "fase": "KO", "comp": null, "ronda": null}, {"p1": 11, "p2": 15, "w": 11, "fase": "KO", "comp": null, "ronda": null}, {"p1": 11, "p2": 6, "w": 11, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 11, "p2": 10, "w": 11, "fase": "KO", "comp": null, "ronda": null}, {"p1": 11, "p2": 10, "w": 11, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 11, "p2": 10, "w": 11, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 11, "p2": 10, "w": 10, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 11, "p2": 7, "w": 7, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 11, "p2": 7, "w": 7, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 11, "p2": 7, "w": 7, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 11, "p2": 20, "w": 20, "fase": "KO", "comp": null, "ronda": null}, {"p1": 11, "p2": 4, "w": 4, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 11, "p2": 7, "w": 11, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 18, "p2": 10, "w": 10, "fase": "KO", "comp": null, "ronda": null}, {"p1": 18, "p2": 10, "w": 18, "fase": "KO", "comp": null, "ronda": null}, {"p1": 18, "p2": 10, "w": 18, "fase": "KO", "comp": null, "ronda": null}, {"p1": 18, "p2": 20, "w": 18, "fase": "KO", "comp": null, "ronda": null}, {"p1": 18, "p2": 7, "w": 7, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 18, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 18, "p2": 13, "w": 13, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 18, "p2": 13, "w": 13, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 10, "p2": 9, "w": 9, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 10, "p2": 9, "w": 9, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 9, "w": 10, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 10, "p2": 9, "w": 10, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 10, "p2": 9, "w": 10, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 9, "w": 10, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 7, "w": 10, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 10, "p2": 7, "w": 10, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 7, "w": 7, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 10, "p2": 7, "w": 7, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 10, "p2": 7, "w": 7, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 7, "w": 7, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 8, "w": 10, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 8, "w": 8, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 10, "p2": 8, "w": 8, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 9, "p2": 20, "w": 9, "fase": "KO", "comp": null, "ronda": null}, {"p1": 9, "p2": 8, "w": 8, "fase": "KO", "comp": null, "ronda": null}, {"p1": 9, "p2": 19, "w": 19, "fase": "KO", "comp": null, "ronda": null}, {"p1": 9, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 9, "p2": 4, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 9, "p2": 11, "w": 11, "fase": "KO", "comp": null, "ronda": null}, {"p1": 19, "p2": 10, "w": 19, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 8, "p2": 7, "w": 7, "fase": "KO", "comp": null, "ronda": null}, {"p1": 8, "p2": 7, "w": 8, "fase": "KO", "comp": null, "ronda": null}, {"p1": 8, "p2": 7, "w": 8, "fase": "KO", "comp": null, "ronda": null}, {"p1": 4, "p2": 7, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 4, "p2": 7, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 4, "p2": 7, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 10, "p2": 6, "w": 10, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 7, "p2": 6, "w": 7, "fase": "Grupo", "comp": null, "ronda": null}, {"p1": 2, "p2": 7, "w": 2, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 3, "p2": 8, "w": 3, "fase": "KO", "comp": "Grand Slam", "ronda": "Final"}, {"p1": 8, "p2": 4, "w": 8, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 1, "w": 2, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": "ATP 500", "ronda": "Final"}, {"p1": 2, "p2": 10, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 7, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 3, "p2": 10, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 7, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 7, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 4, "p2": 20, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 10, "w": 1, "fase": "KO", "comp": null, "ronda": null}, {"p1": 20, "p2": 7, "w": 20, "fase": "KO", "comp": null, "ronda": null}, {"p1": 4, "p2": 18, "w": 4, "fase": "KO", "comp": null, "ronda": null}, {"p1": 1, "p2": 4, "w": 1, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 2, "p2": 11, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 12, "p2": 7, "w": 12, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 12, "p2": 10, "w": 12, "fase": "KO", "comp": null, "ronda": null}, {"p1": 7, "p2": 11, "w": 7, "fase": "KO", "comp": null, "ronda": null}, {"p1": 7, "p2": 10, "w": 7, "fase": "KO", "comp": null, "ronda": null}, {"p1": 7, "p2": 10, "w": 7, "fase": "KO", "comp": "ATP 250", "ronda": "Final"}, {"p1": 10, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}, {"p1": 7, "p2": 2, "w": 2, "fase": "KO", "comp": null, "ronda": null}, {"p1": 2, "p2": 3, "w": 3, "fase": "KO", "comp": "M1000", "ronda": "Final"}, {"p1": 7, "p2": 3, "w": 3, "fase": "KO", "comp": null, "ronda": null}];
+const DOUBLES = [{"p1": 1, "p2": 3, "w": 1, "comp": "LIGA"}, {"p1": 17, "p2": 10, "w": 17, "comp": "LIGA"}, {"p1": 1, "p2": 3, "w": 3, "comp": "LIGA"}, {"p1": 2, "p2": 11, "w": 11, "comp": "LIGA"}, {"p1": 1, "p2": 3, "w": 1, "comp": "LIGA"}, {"p1": 2, "p2": 11, "w": 2, "comp": "LIGA"}, {"p1": 1, "p2": 5, "w": 1, "comp": "LIGA"}, {"p1": 2, "p2": 9, "w": 2, "comp": "LIGA"}, {"p1": 1, "p2": 2, "w": 1, "comp": "LIGA"}, {"p1": 5, "p2": 10, "w": 5, "comp": "LIGA"}, {"p1": 3, "p2": 1, "w": 3, "comp": "LIGA"}, {"p1": 9, "p2": 5, "w": 9, "comp": "LIGA"}, {"p1": 1, "p2": 10, "w": 1, "comp": "LIGA"}, {"p1": 2, "p2": 4, "w": 2, "comp": "LIGA"}, {"p1": 2, "p2": 1, "w": 2, "comp": "LIGA"}, {"p1": 10, "p2": 8, "w": 10, "comp": "LIGA"}, {"p1": 1, "p2": 4, "w": 4, "comp": "LIGA"}, {"p1": 2, "p2": 3, "w": 3, "comp": "LIGA"}, {"p1": 2, "p2": 1, "w": 1, "comp": "LIGA"}, {"p1": 4, "p2": 3, "w": 3, "comp": "LIGA"}, {"p1": 12, "p2": 9, "w": 12, "comp": "GSDB"}, {"p1": 13, "p2": 5, "w": 13, "comp": "GSDB"}, {"p1": 1, "p2": 2, "w": 1, "comp": "GSDB"}, {"p1": 3, "p2": 5, "w": 3, "comp": "GSDB"}, {"p1": 4, "p2": 2, "w": 4, "comp": "GSDB"}, {"p1": 3, "p2": 1, "w": 3, "comp": "GSDB"}, {"p1": 4, "p2": 2, "w": 4, "comp": "GSDB"}, {"p1": 3, "p2": 1, "w": 3, "comp": "GSDB"}, {"p1": 4, "p2": 2, "w": 4, "comp": "GSDB"}, {"p1": 3, "p2": 1, "w": 3, "comp": "GSDB"}, {"p1": 1, "p2": 2, "w": 1, "comp": "GSDB"}, {"p1": 3, "p2": 4, "w": 3, "comp": "GSDB"}, {"p1": 1, "p2": 2, "w": 1, "comp": "M1000DB"}, {"p1": 17, "p2": 15, "w": 17, "comp": "M1000DB"}, {"p1": 3, "p2": 1, "w": 3, "comp": "M1000DB"}, {"p1": 11, "p2": 2, "w": 11, "comp": "M1000DB"}, {"p1": 2, "p2": 1, "w": 2, "comp": "M1000DB"}, {"p1": 7, "p2": 18, "w": 7, "comp": "M1000DB"}, {"p1": 1, "p2": 3, "w": 1, "comp": "M1000DB"}, {"p1": 8, "p2": 7, "w": 8, "comp": "M1000DB"}, {"p1": 2, "p2": 4, "w": 2, "comp": "M1000DB"}, {"p1": 7, "p2": 10, "w": 7, "comp": "M1000DB"}, {"p1": 4, "p2": 1, "w": 4, "comp": "M1000DB"}, {"p1": 7, "p2": 12, "w": 7, "comp": "M1000DB"}, {"p1": 2, "p2": 1, "w": 2, "comp": "GSDB"}, {"p1": 3, "p2": 4, "w": 3, "comp": "GSDB"}, {"p1": 3, "p2": 2, "w": 3, "comp": "LIGA"}, {"p1": 18, "p2": 7, "w": 18, "comp": "LIGA"}];
+
+</script>
+<script>
+// ---------- Config ----------
+const COUNTRY_CODE = {
+  'Serbia':'rs','Suiza':'ch','España':'es','Republica Checa':'cz','Rusia':'ru',
+  'Peru':'pe','Ciudad del Vaticano':'va','Canada':'ca','Italia':'it','Usa':'us',
+  'Australia':'au','Portugal':'pt','Grecia':'gr','Argentina':'ar','Brasil':'br',
+  'Francia':'fr','Israel':'il','Alemania':'de','Chile':'cl','Polonia':'pl'
+};
+const HAND = 'Diestro';
+
+const SINGLES_CATS = [
+  ['Grand Slam','Grand Slam'],
+  ['M1000','Masters 1000'],
+  ['ATP 500','ATP 500'],
+  ['ATP 250','ATP 250'],
+  ['Copa de Maestros','Copa de Maestros'],
+  ['Torneos Extra','Torneos Extra'],
+];
+const DOUBLES_CATS = [
+  ['GSDB','Grand Slam Dobles'],
+  ['M1000DB','Masters 1000 Dobles'],
+  ['LIGA','Liga (Dobles)'],
+];
+
+function playerById(id){ return PLAYERS.find(p=>p.id===id); }
+function flagImg(p, sizeClass){
+  const code = COUNTRY_CODE[p.country];
+  if(!code) return '<span class="'+sizeClass+'" style="display:inline-flex;align-items:center;justify-content:center;">🏳️</span>';
+  return '<img class="flag-img '+sizeClass+'" src="https://flagcdn.com/'+code+'.svg" alt="'+p.country+'" loading="lazy">';
+}
+
+// ---------- Stats ----------
+function singlesRecord(id, koOnly){
+  const ms = SINGLES.filter(m => (m.p1===id || m.p2===id) && (!koOnly || m.fase==='KO'));
+  const played = ms.length;
+  const wins = ms.filter(m=>m.w===id).length;
+  const losses = played - wins;
+  const pct = played ? wins/played : 0;
+  return {played, wins, losses, pct};
+}
+
+function singlesCategoryTitles(id, comp){
+  const finals = SINGLES.filter(m => (m.p1===id||m.p2===id) && m.comp===comp && m.ronda==='Final');
+  const played = finals.length;
+  const titles = finals.filter(m=>m.w===id).length;
+  const runnerup = played-titles;
+  return {played, titles, runnerup, pct: played? titles/played:0};
+}
+
+function singlesTotalTitles(id){
+  const finals = SINGLES.filter(m => (m.p1===id||m.p2===id) && m.ronda==='Final');
+  const played = finals.length;
+  const titles = finals.filter(m=>m.w===id).length;
+  const runnerup = played-titles;
+  return {played, titles, runnerup, pct: played? titles/played:0};
+}
+
+function doublesCategoryTitles(id, comp){
+  const ms = DOUBLES.filter(m => (m.p1===id||m.p2===id) && m.comp===comp);
+  const played = ms.length;
+  const titles = ms.filter(m=>m.w===id).length;
+  const runnerup = played-titles;
+  return {played, titles, runnerup, pct: played? titles/played:0};
+}
+
+function doublesTotalTitles(id){
+  const ms = DOUBLES.filter(m => (m.p1===id||m.p2===id));
+  const played = ms.length;
+  const titles = ms.filter(m=>m.w===id).length;
+  const runnerup = played-titles;
+  return {played, titles, runnerup, pct: played? titles/played:0};
+}
+
+function careerTitles(id){
+  const s = singlesTotalTitles(id);
+  const d = doublesTotalTitles(id);
+  const played = s.played+d.played;
+  const titles = s.titles+d.titles;
+  const runnerup = s.runnerup+d.runnerup;
+  return {played, titles, runnerup, pct: played? titles/played:0};
+}
+
+function careerRank(id){
+  const arr = PLAYERS.map(p=>({id:p.id, t: careerTitles(p.id).titles})).sort((a,b)=>b.t-a.t);
+  const idx = arr.findIndex(x=>x.id===id);
+  return {rank: idx+1, total: PLAYERS.length, titles: arr[idx].t};
+}
+
+// ---------- Rendering helpers ----------
+function pctStr(p){ return Math.round(p*100) + '%'; }
+
+function trophySvg(){
+  return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 3h-2V2H8v1H6a2 2 0 0 0-2 2v2a4 4 0 0 0 4 4 5.99 5.99 0 0 0 3 4.584V18H9a2 2 0 0 0-2 2v1h10v-1a2 2 0 0 0-2-2h-2v-2.416A5.99 5.99 0 0 0 16 11a4 4 0 0 0 4-4V5a2 2 0 0 0-2-2zM6 9a2 2 0 0 1-2-2V5h2zm14-2a2 2 0 0 1-2 2V5h2z"/></svg>';
+}
+
+function trophyRow(count, max){
+  max = max || 10;
+  if(count<=0) return '<span class="tc-empty">Sin títulos</span>';
+  let html='';
+  const shown = Math.min(count, max);
+  for(let i=0;i<shown;i++) html += trophySvg();
+  if(count>max) html += '<span class="more">+'+(count-max)+'</span>';
+  return html;
+}
+
+function recordCard(title, rec){
+  return '' +
+    '<div class="record-card">' +
+      '<div class="rc-top"><span class="rc-title">'+title+'</span><span class="rc-pct">'+(rec.played? pctStr(rec.pct):'—')+'</span></div>' +
+      '<div class="rc-nums">' +
+        '<div class="rc-num-block"><div class="n">'+rec.played+'</div><div class="l">Partidos</div></div>' +
+        '<div class="rc-num-block win"><div class="n">'+rec.wins+'</div><div class="l">Victorias</div></div>' +
+        '<div class="rc-num-block loss"><div class="n">'+rec.losses+'</div><div class="l">Derrotas</div></div>' +
+      '</div>' +
+      '<div class="splitbar">' +
+        '<div class="w" style="width:'+(rec.played? rec.pct*100:0)+'%"></div>' +
+        '<div class="l" style="width:'+(rec.played? (1-rec.pct)*100:100)+'%"></div>' +
+      '</div>' +
+    '</div>';
+}
+
+function titleCard(label, rec){
+  return '' +
+    '<div class="title-card">' +
+      '<div class="tc-name">'+label+'</div>' +
+      '<div class="trophy-row">'+trophyRow(rec.titles)+'</div>' +
+      '<div class="tc-stats">' +
+        '<span>Finales <b>'+rec.played+'</b></span>' +
+        '<span>Títulos <b>'+rec.titles+'</b></span>' +
+        '<span>Subcamp. <b>'+rec.runnerup+'</b></span>' +
+        '<span>% <b>'+(rec.played?pctStr(rec.pct):'—')+'</b></span>' +
+      '</div>' +
+    '</div>';
+}
+
+function summaryCard(title, rec, opts){
+  opts = opts || {};
+  const cls = opts.career ? 'summary-card career' : 'summary-card';
+  return '' +
+    '<div class="'+cls+'">' +
+      '<div class="summary-top">' +
+        '<span class="summary-title">'+title+'</span>' +
+        '<div class="trophy-row" style="margin:0;">'+trophyRow(rec.titles, 14)+'</div>' +
+      '</div>' +
+      '<div class="summary-stats">' +
+        '<div class="s-block"><div class="n">'+rec.played+'</div><div class="l">Finales</div></div>' +
+        '<div class="s-block"><div class="n">'+rec.titles+'</div><div class="l">Títulos</div></div>' +
+        '<div class="s-block"><div class="n">'+rec.runnerup+'</div><div class="l">Subcampeonatos</div></div>' +
+        '<div class="s-block"><div class="n">'+(rec.played?pctStr(rec.pct):'—')+'</div><div class="l">% Títulos</div></div>' +
+      '</div>' +
+    '</div>';
+}
+
+// ---------- Player view ----------
+function renderPlayer(id){
+  const p = playerById(id);
+  const total = singlesRecord(id,false);
+  const ko = singlesRecord(id,true);
+  const rk = careerRank(id);
+
+  let html = '';
+  html += '<div class="p-header">';
+  html += '<div class="p-flag">'+flagImg(p,'flag-lg')+'</div>';
+  html += '<div><div class="p-name">'+p.name+'</div><div class="p-meta">';
+  html += '<span class="pill country">'+p.country+'</span>';
+  html += '<span class="pill hand">Mano buena · '+HAND+'</span>';
+  html += '<span class="pill rank">#'+rk.rank+' de '+rk.total+' en títulos</span>';
+  html += '</div></div></div>';
+
+  html += '<div class="section-title">Récord</div>';
+  html += '<div class="record-row">'+recordCard('Total', total)+recordCard('Solo KO', ko)+'</div>';
+
+  html += '<div class="section-title">Títulos individuales</div>';
+  html += '<div class="titles-grid">';
+  SINGLES_CATS.forEach(function(c){ html += titleCard(c[1], singlesCategoryTitles(id,c[0])); });
+  html += '</div>';
+  html += summaryCard('Total individuales', singlesTotalTitles(id));
+
+  html += '<div class="section-title">Títulos dobles</div>';
+  html += '<div class="titles-grid">';
+  DOUBLES_CATS.forEach(function(c){ html += titleCard(c[1], doublesCategoryTitles(id,c[0])); });
+  html += '</div>';
+  html += summaryCard('Total dobles', doublesTotalTitles(id));
+
+  html += '<div class="section-title">Carrera completa</div>';
+  html += summaryCard('Individual + Dobles', careerTitles(id), {career:true});
+
+  document.getElementById('player-profile').innerHTML = html;
+  document.getElementById('player-profile').hidden = false;
+  document.getElementById('player-empty').hidden = true;
+}
+
+// ---------- H2H ----------
+function h2hRecord(idA, idB, koOnly){
+  const ms = SINGLES.filter(m => ((m.p1===idA&&m.p2===idB)||(m.p1===idB&&m.p2===idA)) && (!koOnly||m.fase==='KO'));
+  const winsA = ms.filter(m=>m.w===idA).length;
+  const winsB = ms.filter(m=>m.w===idB).length;
+  return {winsA: winsA, winsB: winsB, total: ms.length, matches: ms};
+}
+
+function h2hBar(label, rec){
+  if(rec.total===0){
+    return '<div class="h2h-bar-card"><div class="h2h-bar-label">'+label+'</div><div class="h2h-bar-empty">Sin enfrentamientos</div></div>';
+  }
+  const pa = rec.winsA/rec.total*100, pb = rec.winsB/rec.total*100;
+  return '' +
+    '<div class="h2h-bar-card">' +
+      '<div class="h2h-bar-label">'+label+'</div>' +
+      '<div class="h2h-bar-nums"><span class="a">'+rec.winsA+'</span><span class="b">'+rec.winsB+'</span></div>' +
+      '<div class="h2h-splitbar"><div class="a" style="width:'+pa+'%"></div><div class="b" style="width:'+pb+'%"></div></div>' +
+    '</div>';
+}
+
+function renderH2H(idA, idB){
+  const a = playerById(idA), b = playerById(idB);
+  const total = h2hRecord(idA, idB, false);
+  const ko = h2hRecord(idA, idB, true);
+
+  let html = '';
+  html += '<div class="h2h-vs-header">';
+  html += '<div class="h2h-player"><div class="flag">'+flagImg(a,'flag-lg')+'</div><div class="name">'+a.name+'</div><div class="country">'+a.country+'</div></div>';
+  html += '<div class="h2h-mid">VS</div>';
+  html += '<div class="h2h-player"><div class="flag">'+flagImg(b,'flag-lg')+'</div><div class="name">'+b.name+'</div><div class="country">'+b.country+'</div></div>';
+  html += '</div>';
+  html += h2hBar('Cara a cara — Total', total);
+  html += h2hBar('Cara a cara — Solo KO', ko);
+
+  if(total.total>0){
+    html += '<button class="history-toggle" id="history-toggle">Ver historial de partidos ('+total.total+')</button>';
+    html += '<div class="history-list" id="history-list">';
+    total.matches.forEach(function(m){
+      const w = playerById(m.w);
+      const tag = m.ronda==='Final' ? '<span class="h-tag final">'+m.comp+' · Final</span>' : '<span class="h-tag">'+m.fase+'</span>';
+      html += '<div class="h-row">'+tag+'<span class="h-winner">'+w.name+'</span><span class="h-vs">gana</span></div>';
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('h2h-result').innerHTML = html;
+  document.getElementById('h2h-result').hidden = false;
+  document.getElementById('h2h-empty').hidden = true;
+
+  const t = document.getElementById('history-toggle');
+  if(t) t.addEventListener('click', function(){
+    document.getElementById('history-list').classList.toggle('show');
+  });
+}
+
+// ---------- Search / autocomplete ----------
+function setupSearch(inputId, suggId, onPick){
+  const input = document.getElementById(inputId);
+  const sugg = document.getElementById(suggId);
+
+  function close(){ sugg.classList.remove('show'); sugg.innerHTML=''; }
+
+  function open(list){
+    if(!list.length){ close(); return; }
+    sugg.innerHTML = list.map(function(p){
+      return '<div class="sugg-item" data-id="'+p.id+'">' +
+        '<span class="sugg-flag">'+flagImg(p,'flag-sm')+'</span><span>'+p.name+'</span>' +
+        '<span class="sugg-country">'+p.country+'</span></div>';
+    }).join('');
+    sugg.classList.add('show');
+    Array.prototype.forEach.call(sugg.children, function(el){
+      el.addEventListener('mousedown', function(e){
+        e.preventDefault();
+        const id = Number(el.dataset.id);
+        const p = playerById(id);
+        input.value = p.name;
+        close();
+        onPick(id);
+      });
+    });
+  }
+
+  input.addEventListener('input', function(){
+    const q = input.value.trim().toLowerCase();
+    if(!q){ close(); return; }
+    const list = PLAYERS.filter(function(p){ return p.name.toLowerCase().indexOf(q)!==-1; }).slice(0,8);
+    open(list);
+  });
+
+  input.addEventListener('focus', function(){
+    if(input.value.trim()){
+      const q = input.value.trim().toLowerCase();
+      const list = PLAYERS.filter(function(p){ return p.name.toLowerCase().indexOf(q)!==-1; }).slice(0,8);
+      open(list);
+    }
+  });
+
+  input.addEventListener('blur', function(){ setTimeout(close, 120); });
+
+  input.addEventListener('keydown', function(e){
+    const items = Array.prototype.slice.call(sugg.children);
+    if(e.key==='Enter'){
+      const q = input.value.trim().toLowerCase();
+      const exact = PLAYERS.find(function(p){ return p.name.toLowerCase()===q; });
+      if(exact){ input.value=exact.name; close(); onPick(exact.id); }
+      else if(items.length){
+        const id = Number(items[0].dataset.id);
+        const p = playerById(id);
+        input.value=p.name; close(); onPick(id);
+      }
+    }
+  });
+}
+
+let h2hA = null, h2hB = null;
+function tryRenderH2H(){
+  const badge = document.getElementById('vs-badge');
+  if(h2hA!=null && h2hB!=null){
+    badge.classList.add('live');
+    renderH2H(h2hA, h2hB);
+  } else {
+    badge.classList.remove('live');
+    document.getElementById('h2h-result').hidden = true;
+    document.getElementById('h2h-empty').hidden = false;
+  }
+}
+
+setupSearch('player-search','player-suggestions', renderPlayer);
+setupSearch('h2h-a-input','h2h-a-suggestions', function(id){ h2hA=id; tryRenderH2H(); });
+setupSearch('h2h-b-input','h2h-b-suggestions', function(id){ h2hB=id; tryRenderH2H(); });
+
+// ---------- Tabs ----------
+Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(btn){
+  btn.addEventListener('click', function(){
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    Array.prototype.forEach.call(document.querySelectorAll('.view'), function(v){ v.classList.remove('active'); });
+    document.getElementById('view-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- Ticker ----------
+function buildTicker(){
+  const finalsSingles = SINGLES.filter(function(m){ return m.ronda==='Final'; }).length;
+  const items = [
+    [PLAYERS.length, 'Jugadores'],
+    [SINGLES.length, 'Partidos individuales'],
+    [finalsSingles, 'Finales individuales'],
+    [DOUBLES.length, 'Finales dobles'],
+  ];
+  document.getElementById('ticker').innerHTML = items.map(function(it){
+    return '<div class="ticker-item"><div class="ticker-num">'+it[0]+'</div><div class="ticker-label">'+it[1]+'</div></div>';
+  }).join('');
+}
+buildTicker();
+
+</script>
+</body>
+</html>
